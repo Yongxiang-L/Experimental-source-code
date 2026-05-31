@@ -1,6 +1,6 @@
 # ablation_study.py
 # Ablation Study: Comparing Full I-C&CG with Two Variants (No Multi-Start / No Gradient Ascent)
-# Improved C&CG Algorithm Based on Original Multi-Cut BCD Framework
+# Improved C&CG Algorithm
 
 import os
 import numpy as np
@@ -27,8 +27,8 @@ BASE_COSTS = {
 EXPERIMENT_PARAMS = {
     "CF": 200, "epsilon": 1e-5, "max_outer_iter": 200, "time_limit": 3600,
     "M_big": 1e4,
-    "B_list": [3],  # Adjust as needed: [2,3,5]
-    "T_list": [3],  # Adjust as needed: [3,5,7]
+    "B_list": [3],
+    "T_list": [7],  # Adjust as needed: [3,5,7]
     "n_history": 365,
     "n_repeat": 100,  # Number of repetitions per configuration
     "rho": 0.3,
@@ -129,8 +129,6 @@ def generate_truncated_mvn(B: int, n_samples: int, rho: float = 0.5) -> np.ndarr
         mu = np.array([40, 30])
     elif B == 3:
         mu = np.array([40, 30, 25])
-    elif B == 5:
-        mu = np.array([40, 35, 30, 25, 20])
     else:
         raise ValueError(f"Unsupported number of blood products: B={B}")
 
