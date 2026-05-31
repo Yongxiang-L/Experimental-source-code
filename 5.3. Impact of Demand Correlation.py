@@ -26,7 +26,7 @@ EXPERIMENT_PARAMS = {
     "CF": 200, "epsilon": 1e-4, "max_outer_iter": 200, "time_limit": 3600,
     "M_big": 1e5,
     "B_list": [3], "T_list": [7], "n_history": 365,
-    "n_repeat": 1, "rho": 0.3, "output_dir": "./实验输出",
+    "n_repeat": 1, "rho": 0.3, "output_dir": "./Experimental output",
     "n_jobs": 1, "gurobi_threads": 1, "gurobi_outputflag": 0, "Mb": 5,
     "demand_upper_bound_ratio": 5.0,
     "max_consecutive_duplicate": 3,
@@ -644,7 +644,7 @@ def bcd_subproblem_solve(
         if len(global_pool) > global_pool_size:
             global_pool.pop()
 
-    print(f"    [BCD] Phase 1: Initialization ({n_initial_points} points)...")
+    print(f"    [GA] Phase 1: Initialization ({n_initial_points} points)...")
 
     # Generate initial points based on uncertainty set type
     if uncertainty_type == "MVCE":
@@ -655,7 +655,7 @@ def bcd_subproblem_solve(
         raise ValueError("Unsupported uncertainty type")
 
     if initial_worst_d_list is not None:
-        print(f"    [BCD] Injecting {len(initial_worst_d_list)} worst scenarios from master problem...")
+        print(f"    [GA] Injecting {len(initial_worst_d_list)} worst scenarios from master problem...")
         for d_init in initial_worst_d_list:
             d_init_full = np.tile(d_init, (T, 1)) if d_init.ndim == 1 else d_init
             d_init_full = _sanitize_d(d_init_full)
@@ -669,9 +669,9 @@ def bcd_subproblem_solve(
         _add_to_pool(Q_val, d_init_full, u_val, s_val, o_val, i_val)
 
     if len(global_pool) > 0:
-        print(f"    [BCD] Initialization complete, current worst cost: {global_pool[0][0]:.2f}")
+        print(f"    [GA] Initialization complete, current worst cost: {global_pool[0][0]:.2f}")
     else:
-        print(f"    [BCD] Warning: Pool is empty, using mean as fallback...")
+        print(f"    [GA] Warning: Pool is empty, using mean as fallback...")
         d_backup = np.tile(np.maximum(a, 0.0), (T, 1))
         Q_val, u_val, s_val, o_val, i_val = second_stage_LP_solver(x_current, d_backup, cost_params)
         _add_to_pool(Q_val, d_backup, u_val, s_val, o_val, i_val)
@@ -679,7 +679,7 @@ def bcd_subproblem_solve(
     k = 0
     Q_prev_best = -np.inf
 
-    print(f"    [BCD] Phase 2: Hybrid gradient ascent iteration...")
+    print(f"    [GA] Phase 2: Hybrid gradient ascent iteration...")
 
     while k < max_inner_iter:
         k += 1
@@ -698,7 +698,7 @@ def bcd_subproblem_solve(
         if k > 1:
             gap = np.abs((current_best_Q - Q_prev_best) / (current_best_Q + 1e-8))
             if gap < inner_epsilon:
-                print(f"    [BCD] Converged at iteration {k}, Gap={gap:.6f}")
+                print(f"    [GA] Converged at iteration {k}, Gap={gap:.6f}")
                 break
 
         Q_prev_best = current_best_Q
@@ -723,7 +723,7 @@ def bcd_subproblem_solve(
     Q_worst_list = [item[0] for item in final_results]
     solution_detail_list = [(item[2], item[3], item[4], item[5]) for item in final_results]
 
-    print(f"    [BCD] Completed, returning Top-{len(d_worst_list)} scenarios, worst cost={Q_worst_list[0]:.2f}")
+    print(f"    [GA] Completed, returning Top-{len(d_worst_list)} scenarios, worst cost={Q_worst_list[0]:.2f}")
 
     return d_worst_list, Q_worst_list, solution_detail_list
 
@@ -1089,20 +1089,20 @@ def run_experiment_53():
     Strictly follows the experimental design specified in the paper:
     - B=3 blood product categories
     - T=7-day planning horizon
-    - Pearson correlation coefficient ρ gradient: -0.2, -0.1, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5
+    - Pearson correlation coefficient ρ gradient: -0.5, -0.4, -0.3, -0.2, -0.1, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8
     - Fixed demand volatility coefficient σ=0.5
-    - 5 independent repetitions per ρ value
+    - 100 independent repetitions per ρ value
     - 10,000 Monte Carlo simulations per run for out-of-sample evaluation
     """
     # Core experimental parameters (strictly from Section 5.3.1)
     B = 3  # 3 blood product categories
     T = 7  # 7-day planning horizon
     sigma = 0.5  # Fixed demand volatility coefficient
-    rho_list = [-0.2, -0.1, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5]  # ρ gradient from the paper
+    rho_list = [-0.5, -0.4, -0.3, -0.2, -0.1, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]  # ρ gradient from the paper
     n_repeat = 5  # 5 independent repetitions per ρ
     n_history = EXPERIMENT_PARAMS["n_history"]  # 365 days of historical data
     n_monte_carlo = EXPERIMENT_PARAMS["n_monte_carlo"]  # 10,000 Monte Carlo simulations
-    output_dir = "./5.3实验结果"
+    output_dir = "./5.3 experimental result"
     os.makedirs(output_dir, exist_ok=True)
 
     # Get cost parameters (automatically extracts first B=3 products)
@@ -1168,13 +1168,13 @@ def run_experiment_53():
 
     # Save all raw results
     df = pd.DataFrame(all_results)
-    output_path = os.path.join(output_dir, "5.3实验完整结果.csv")
+    output_path = os.path.join(output_dir, "5.3 The complete results of the experiment.csv")
     df.to_csv(output_path, index=False, encoding="utf-8-sig")
     print(f"\nAll experimental results saved to: {output_path}")
 
     # Calculate average results per ρ (corresponds to Table 4 in the paper)
     avg_df = df.groupby(["rho"]).mean().reset_index()
-    avg_output_path = os.path.join(output_dir, "5.3实验平均结果.csv")
+    avg_output_path = os.path.join(output_dir, "5.3 Average experimental results.csv")
     avg_df.to_csv(avg_output_path, index=False, encoding="utf-8-sig")
     print(f"Average results saved to: {avg_output_path}")
 
@@ -1215,7 +1215,7 @@ def main():
     df, avg_df = run_experiment_53()
 
     print("\nExperiment completed successfully!")
-    print("Result files saved to ./5.3实验结果/ directory")
+    print("Result files saved to ./5.3 experimental result/ directory")
 
 
 if __name__ == "__main__":
