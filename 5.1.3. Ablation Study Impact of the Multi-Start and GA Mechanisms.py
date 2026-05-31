@@ -18,10 +18,10 @@ from joblib import Parallel, delayed
 np.random.seed(20260401)
 
 BASE_COSTS = {
-    "CVb": [200, 200, 200, 200, 200],
-    "CHb": [10, 10, 10, 10, 10],
-    "CSb": [2000, 2000, 2000, 2000, 2000],
-    "COb": [200, 200, 200, 200, 200]
+    "CVb": [200, 200, 200],
+    "CHb": [10, 10, 10],
+    "CSb": [2000, 2000, 2000],
+    "COb": [200, 200, 200]
 }
 
 EXPERIMENT_PARAMS = {
