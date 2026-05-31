@@ -16,10 +16,10 @@ np.random.seed(20260509)  # Set random seed for reproducibility using current da
 
 # Baseline cost parameters from Table 1, Section 5.1.1 (uniform for all products)
 BASE_COSTS = {
-    "CVb": [200, 200, 200, 200, 200],
-    "CHb": [10, 10, 10, 10, 10],
-    "CSb": [2000, 2000, 2000, 2000, 2000],
-    "COb": [200, 200, 200, 200, 200]
+    "CVb": [200, 200, 200],
+    "CHb": [10, 10, 10],
+    "CSb": [2000, 2000, 2000],
+    "COb": [200, 200, 200]
 }
 
 EXPERIMENT_PARAMS = {
@@ -616,7 +616,7 @@ def bcd_subproblem_solve(
         if len(global_pool) > global_pool_size:
             global_pool.pop()
 
-    print(f"    [BCD] Phase 1: Initialization ({n_initial_points} points)...")
+    print(f"    [GA] Phase 1: Initialization ({n_initial_points} points)...")
 
     # Generate initial points based on uncertainty set type
     if uncertainty_type == "MVCE":
@@ -640,7 +640,7 @@ def bcd_subproblem_solve(
         raise ValueError("Unsupported uncertainty type")
 
     if initial_worst_d_list is not None:
-        print(f"    [BCD] Injecting {len(initial_worst_d_list)} worst-case scenarios from master problem...")
+        print(f"    [GA] Injecting {len(initial_worst_d_list)} worst-case scenarios from master problem...")
         for d_init in initial_worst_d_list:
             d_init_full = np.tile(d_init, (T, 1)) if d_init.ndim == 1 else d_init
             d_init_full = _sanitize_d(d_init_full)
@@ -654,9 +654,9 @@ def bcd_subproblem_solve(
         _add_to_pool(Q_val, d_init_full, u_val, s_val, o_val, i_val)
 
     if len(global_pool) > 0:
-        print(f"    [BCD] Initialization complete, current worst cost: {global_pool[0][0]:.2f}")
+        print(f"    [GA] Initialization complete, current worst cost: {global_pool[0][0]:.2f}")
     else:
-        print(f"    [BCD] Warning: Pool is empty, using mean as fallback...")
+        print(f"    [GA] Warning: Pool is empty, using mean as fallback...")
         if uncertainty_type == "MVCE":
             d_backup = np.tile(np.maximum(a, 0.0), (T, 1))
         else:
@@ -667,7 +667,7 @@ def bcd_subproblem_solve(
     k = 0
     Q_prev_best = -np.inf
 
-    print(f"    [BCD] Phase 2: Hybrid gradient ascent iteration...")
+    print(f"    [GA] Phase 2: Hybrid gradient ascent iteration...")
 
     while k < max_inner_iter:
         k += 1
@@ -689,7 +689,7 @@ def bcd_subproblem_solve(
         if k > 1:
             gap = np.abs((current_best_Q - Q_prev_best) / (current_best_Q + 1e-8))
             if gap < inner_epsilon:
-                print(f"    [BCD] Converged at iteration {k}, Gap={gap:.6f}")
+                print(f"    [GA] Converged at iteration {k}, Gap={gap:.6f}")
                 break
 
         Q_prev_best = current_best_Q
@@ -719,7 +719,7 @@ def bcd_subproblem_solve(
     Q_worst_list = [item[0] for item in final_results]
     solution_detail_list = [(item[2], item[3], item[4], item[5]) for item in final_results]
 
-    print(f"    [BCD] Completed, returning Top-{len(d_worst_list)} scenarios, worst cost={Q_worst_list[0]:.2f}")
+    print(f"    [GA] Completed, returning Top-{len(d_worst_list)} scenarios, worst cost={Q_worst_list[0]:.2f}")
 
     return d_worst_list, Q_worst_list, solution_detail_list
 
