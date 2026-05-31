@@ -10,14 +10,14 @@ from typing import Tuple, List, Dict
 # ==============================================================================
 # ===================== Part 1: Global Parameters and Utilities =====================
 # ==============================================================================
-np.random.seed(20260509)  # Fixed random seed for full reproducibility (matches the paper's experimental setup)
+np.random.seed(20260509)  # Fixed random seed for full reproducibility
 
 # Baseline cost parameters from Table 1, Section 5.1.1 (uniform across all blood products)
 BASE_COSTS = {
-    "CVb": [200, 200, 200, 200, 200],
-    "CHb": [10, 10, 10, 10, 10],
-    "CSb": [2000, 2000, 2000, 2000, 2000],
-    "COb": [200, 200, 200, 200, 200]
+    "CVb": [200, 200, 200],
+    "CHb": [10, 10, 10],
+    "CSb": [2000, 2000, 2000],
+    "COb": [200, 200, 200]
 }
 
 # Comprehensive experimental configuration parameters
@@ -39,7 +39,7 @@ EXPERIMENT_PARAMS = {
     # Debug parameters
     "debug_infeasibility": True,
     # Section 5.2 experiment specific parameters
-    "sigma_list": [0.3, 0.5, 0.7, 0.9, 1.1, 1.3, 1.5, 1.7, 1.9],
+    "sigma_list":  0.5,
     "n_monte_carlo": 10000,
     "n_repeat_52": 100
 }
@@ -585,7 +585,7 @@ def solve_upper_qcqp_multi_period(
 
 
 # ==============================================================================
-# ===================== BCD Subproblem Solver =====================
+# ===================== Subproblem Solver =====================
 # ==============================================================================
 def bcd_subproblem_solve(
         x_current: np.ndarray,
@@ -598,7 +598,7 @@ def bcd_subproblem_solve(
         initial_worst_d_list: List[np.ndarray] = None
 ) -> Tuple[List[np.ndarray], List[float], List[Tuple]]:
     """
-    Block Coordinate Descent (BCD) based subproblem solver with multi-start gradient ascent.
+    subproblem solver with multi-start gradient ascent.
     Finds the worst-case demand scenario that maximizes the second-stage recourse cost.
     Maintains a global optimal pool to avoid local optima and ensure solution quality.
 
