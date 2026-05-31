@@ -14,10 +14,10 @@ np.random.seed(20260509)  # Fix random seed for reproducibility
 
 # Table 1 in Section 5.1.1: Baseline cost parameters (uniform for all products)
 BASE_COSTS = {
-    "CVb": [200, 200, 200, 200, 200],
-    "CHb": [10, 10, 10, 10, 10],
-    "CSb": [2000, 2000, 2000, 2000, 2000],
-    "COb": [200, 200, 200, 200, 200]
+    "CVb": [200, 200, 200],
+    "CHb": [10, 10, 10],
+    "CSb": [2000, 2000, 2000],
+    "COb": [200, 200, 200]
 }
 
 EXPERIMENT_PARAMS = {
@@ -37,7 +37,7 @@ EXPERIMENT_PARAMS = {
     # Debug parameters
     "debug_infeasibility": True,
     # Section 5.4 specific parameters
-    "Mb_list": [3, 4, 5, 6, 7, 8, 9, 10],  # Shelf life gradient specified in the paper
+    "Mb_list": [3, 4, 5, 6, 7, 8],  # Shelf life gradient specified in the paper
     "n_monte_carlo": 10000,
     "n_repeat_54": 100  # 100 repeated experiments per shelf life level
 }
@@ -502,7 +502,7 @@ def solve_upper_qcqp_multi_period(
 
 
 # ==============================================================================
-# ===================== BCD Subproblem Solver (Core of I-C&CG Algorithm) =====================
+# ===================== GA Subproblem Solver (Core of I-C&CG Algorithm) =====================
 # ==============================================================================
 def bcd_subproblem_solve(
         x_current: np.ndarray,
@@ -513,7 +513,7 @@ def bcd_subproblem_solve(
         initial_worst_d_list: List[np.ndarray] = None
 ) -> Tuple[List[np.ndarray], List[float], List[Tuple]]:
     """
-    Section 4.2: Gradient ascent-based BCD subproblem solver
+    Section 4.2: Gradient ascent-based GA subproblem solver
     Includes multi-start initialization, global optimal pool, and batch multi-cut plane updates
     """
     inner_epsilon = EXPERIMENT_PARAMS["bcd_inner_epsilon"]
@@ -545,13 +545,13 @@ def bcd_subproblem_solve(
         if len(global_pool) > global_pool_size:
             global_pool.pop()
 
-    print(f"    [BCD] Phase 1: Initialization (total {n_initial_points} points)...")
+    print(f"    [GA] Phase 1: Initialization (total {n_initial_points} points)...")
 
     # Generate initial points on ellipsoid boundary
     initial_d_list = sample_ellipsoid_points(a, H, n_samples=n_initial_points)
 
     if initial_worst_d_list is not None:
-        print(f"    [BCD] Injecting {len(initial_worst_d_list)} master problem worst scenarios as initial points...")
+        print(f"    [GA] Injecting {len(initial_worst_d_list)} master problem worst scenarios as initial points...")
         for d_init in initial_worst_d_list:
             d_init_full = np.tile(d_init, (T, 1)) if d_init.ndim == 1 else d_init
             d_init_full = _sanitize_d(d_init_full)
@@ -565,9 +565,9 @@ def bcd_subproblem_solve(
         _add_to_pool(Q_val, d_init_full, u_val, s_val, o_val, i_val)
 
     if len(global_pool) > 0:
-        print(f"    [BCD] Initialization complete, current worst cost: {global_pool[0][0]:.2f}")
+        print(f"    [GA] Initialization complete, current worst cost: {global_pool[0][0]:.2f}")
     else:
-        print(f"    [BCD] Warning: Pool is empty, using mean as fallback...")
+        print(f"    [GA] Warning: Pool is empty, using mean as fallback...")
         d_backup = np.tile(np.maximum(a, 0.0), (T, 1))
         Q_val, u_val, s_val, o_val, i_val = second_stage_LP_solver(x_current, d_backup, cost_params)
         _add_to_pool(Q_val, d_backup, u_val, s_val, o_val, i_val)
@@ -575,7 +575,7 @@ def bcd_subproblem_solve(
     k = 0
     Q_prev_best = -np.inf
 
-    print(f"    [BCD] Phase 2: Hybrid gradient ascent iteration...")
+    print(f"    [GA] Phase 2: Hybrid gradient ascent iteration...")
 
     while k < max_inner_iter:
         k += 1
@@ -594,7 +594,7 @@ def bcd_subproblem_solve(
         if k > 1:
             gap = np.abs((current_best_Q - Q_prev_best) / (current_best_Q + 1e-8))
             if gap < inner_epsilon:
-                print(f"    [BCD] Converged at iteration {k}, Gap={gap:.6f}")
+                print(f"    [GA] Converged at iteration {k}, Gap={gap:.6f}")
                 break
 
         Q_prev_best = current_best_Q
@@ -618,7 +618,7 @@ def bcd_subproblem_solve(
     Q_worst_list = [item[0] for item in final_results]
     solution_detail_list = [(item[2], item[3], item[4], item[5]) for item in final_results]
 
-    print(f"    [BCD] Completed, returning Top-{len(d_worst_list)} scenarios, worst cost={Q_worst_list[0]:.2f}")
+    print(f"    [GA] Completed, returning Top-{len(d_worst_list)} scenarios, worst cost={Q_worst_list[0]:.2f}")
 
     return d_worst_list, Q_worst_list, solution_detail_list
 
@@ -783,7 +783,7 @@ def run_classic_ccg_algorithm(
 
         LB = max(LB, MP_obj)
 
-        print(f"  Iteration {iter_count}: Solving BCD subproblem...")
+        print(f"  Iteration {iter_count}: Solving GA subproblem...")
 
         d_worst_list, Q_worst_list, solution_detail_list = bcd_subproblem_solve(
             x_current, T, B, uncertainty_params, cost_params,
@@ -921,7 +921,7 @@ def run_experiment_54():
     Run complete experiment for Section 5.4: Impact of shelf life on MVCE model performance
     Strictly follows paper's experimental design:
     - B=3 blood products, T=7-day planning horizon
-    - Shelf life gradient: 3, 4, 5, 6, 7 days
+    - Shelf life gradient: 3, 4, 5, 6, 7, 8 days
     - Fixed demand correlation ρ=0.3, volatility σ=0.5
     - 10 independent repeats per shelf life level
     - 10,000 Monte Carlo simulations per experiment
@@ -931,7 +931,7 @@ def run_experiment_54():
     T = EXPERIMENT_PARAMS["T"]  # 7-day planning horizon
     rho = EXPERIMENT_PARAMS["rho"]  # Fixed demand correlation coefficient 0.3
     sigma = EXPERIMENT_PARAMS["sigma"]  # Fixed demand volatility coefficient 0.5
-    Mb_list = EXPERIMENT_PARAMS["Mb_list"]  # [3,4,5,6,7] days
+    Mb_list = EXPERIMENT_PARAMS["Mb_list"]  # [3,4,5,6,7,8] days
     n_repeat = EXPERIMENT_PARAMS["n_repeat_54"]  # 10 repeats per shelf life level
     n_history = EXPERIMENT_PARAMS["n_history"]  # 365 days of historical data
     n_monte_carlo = EXPERIMENT_PARAMS["n_monte_carlo"]  # 10,000 Monte Carlo simulations
@@ -1055,7 +1055,7 @@ def main():
     print("=" * 60)
     print("Paper Section 5.4 Experiment: Impact of Shelf Life on MVCE Model")
     print("Experiment Parameters: B=3, T=7, ρ=0.3, σ=0.5, Repeats=10")
-    print("Shelf Life Gradient: 3, 4, 5, 6, 7 days")
+    print("Shelf Life Gradient: 3, 4, 5, 6, 7, 8 days")
     print("=" * 60)
 
     df, avg_df = run_experiment_54()
